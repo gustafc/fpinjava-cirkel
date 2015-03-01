@@ -12,10 +12,15 @@ public class LazySupplier<T> implements Supplier<T> {
 
 
     @Override
-    public synchronized T get() {
+    public T get() {
         Supplier<T> supplier = actualSupplier;
         if (!(supplier instanceof ConstantSupplier)) {
-            actualSupplier = supplier = new ConstantSupplier<>(supplier.get());
+            synchronized (this) {
+                supplier = actualSupplier; // Might have changed when waiting for lock
+                if (!(supplier instanceof ConstantSupplier)) {
+                    actualSupplier = supplier = new ConstantSupplier<>(supplier.get());
+                }
+            }
         }
         return supplier.get();
     }
